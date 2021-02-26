@@ -90,8 +90,3 @@ func ReapiCliCancel(ctx *ReapiCtx, jobid int64, noent_ok bool) (err int) {
 		(C.bool)(noent_ok)))
 	return
 }
-
-/*
-Build in flux-sched container
-sudo CGO_CFLAGS="-I. -I/usr/include" CGO_LDFLAGS="-L/usr/src/resource/hlapi/bindings/c/.libs -lreapi_cli -lstdc++" /usr/src/golang/go/bin/go install reapi_cli.go
-*/
