@@ -25,6 +25,14 @@ func ReapiCliDestroy(ctx *ReapiCtx) {
 	C.reapi_cli_destroy((*C.struct_reapi_cli_ctx)(ctx))
 }
 
+/* int reapi_cli_initialize (reapi_cli_ctx_t *ctx, const char *jgf); */
+
+func ReapiCliInit(ctx *ReapiCtx, jgf string) (err int) {
+    err = (int)(C.reapi_cli_initialize((*C.struct_reapi_cli_ctx)(ctx),
+               C.CString(jgf)))
+    return err
+}
+
 /*! Match a jobspec to the "best" resources and either allocate
  *  orelse reserve them. The best resources are determined by
  *  the selected match policy.
@@ -45,27 +53,22 @@ func ReapiCliDestroy(ctx *ReapiCtx) {
  *                   in terms of elapse time needed to complete
  *                   the match operation.
  *  \return          0 on success; -1 on error.
-
-int reapi_module_match_allocate (reapi_module_ctx_t *ctx, bool orelse_reserve,
-   const char *jobspec, const uint64_t jobid,
-   bool *reserved,
-   char **R, int64_t *at, double *ov);*/
+ */
 
 func ReapiCliMatchAllocate(ctx *ReapiCtx, orelse_reserve bool,
-	jobspec string, jobid int) (reserved bool, allocated string, at int64, overhead float64, err int) {
-	// var atlong C.long = (C.long)(at)
+	jobspec string) (reserved bool, allocated string, at int64, overhead float64, jobid uint64, err int) {
 	var r = C.CString("teststring")
 
-	err = (int)(C.reapi_cli_match_allocate((*C.struct_reapi_cli_ctx)(ctx),
-		(C.bool)(orelse_reserve),
-		C.CString(jobspec),
-		(C.ulong)(jobid),
-		(*C.bool)(&reserved),
-		&r,
-		(*C.long)(&at),
-		(*C.double)(&overhead)))
+    err = (int)(C.reapi_cli_match_allocate((*C.struct_reapi_cli_ctx)(ctx),
+		    (C.bool)(orelse_reserve),
+		    C.CString(jobspec),
+		    (*C.ulong)(&jobid),
+		    (*C.bool)(&reserved),
+		    &r,
+		    (*C.long)(&at),
+		    (*C.double)(&overhead)))
 	allocated = C.GoString(r)
-	return reserved, allocated, at, overhead, err
+	return reserved, allocated, at, overhead, jobid, err
 }
 
 /*! Update the resource state with R.
@@ -111,7 +114,7 @@ func ReapiCliCancel(ctx *ReapiCtx, jobid int64, noent_ok bool) (err int) {
 	err = (int)(C.reapi_cli_cancel((*C.struct_reapi_cli_ctx)(ctx),
 		(C.ulong)(jobid),
 		(C.bool)(noent_ok)))
-	return
+	return err
 }
 
 /*! Get the information on the allocation or reservation corresponding

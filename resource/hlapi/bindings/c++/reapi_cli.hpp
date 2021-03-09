@@ -35,23 +35,28 @@ extern "C" {
 }
 
 #include "resource/hlapi/bindings/c++/reapi.hpp"
+#include "resource/utilities/command.hpp"
 
 namespace Flux {
 namespace resource_model {
 namespace detail {
-
 class reapi_cli_t : public reapi_t {
 public:
-    static int match_allocate (void *h, bool orelse_reserve,
+    static std::shared_ptr<resource_context_t> initialize (
+                                     const std::string &jgf);
+    static int match_allocate (std::shared_ptr<resource_context_t> &rctx, 
+                               bool orelse_reserve,
                                const std::string &jobspec,
-                               const uint64_t jobid, bool &reserved,
+                               uint64_t &jobid, bool &reserved,
                                std::string &R, int64_t &at, double &ov);
     static int update_allocate (void *h, const uint64_t jobid,
                                 const std::string &R, int64_t &at, double &ov,
                                 std::string &R_out);
-    static int cancel (void *h, const int64_t jobid, bool noent_ok);
-    static int info (void *h, const int64_t jobid,
-                     bool &reserved, int64_t &at, double &ov);
+    static int cancel (std::shared_ptr<resource_context_t> &rctx, 
+                       const uint64_t jobid, bool noent_ok);
+    static int info (std::shared_ptr<resource_context_t> &rctx, 
+                     const uint64_t jobid, bool &reserved, int64_t &at, 
+                     double &ov);
     static int stat (void *h, int64_t &V, int64_t &E,int64_t &J,
                      double &load, double &min, double &max, double &avg);
 };

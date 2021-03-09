@@ -42,6 +42,7 @@ using namespace Flux::resource_model::detail;
 
 struct reapi_cli_ctx {
     flux_t *h;
+    std::shared_ptr<resource_context_t> rctx;
 };
 
 extern "C" reapi_cli_ctx_t *reapi_cli_new ()
@@ -61,21 +62,35 @@ extern "C" void reapi_cli_destroy (reapi_cli_ctx_t *ctx)
     free (ctx);
 }
 
+extern "C" int reapi_cli_initialize (reapi_cli_ctx_t *ctx,
+                                     const char *jgf)
+{
+    int rc = -1;
+    if ( !(ctx->rctx = reapi_cli_t::initialize (jgf))) {
+        errno = EINVAL;
+        goto out;
+    }
+    rc = 0;
+
+out:
+    return rc;    
+}
+
 extern "C" int reapi_cli_match_allocate (reapi_cli_ctx_t *ctx,
                    bool orelse_reserve, const char *jobspec,
-                   const uint64_t jobid, bool *reserved,
+                   uint64_t *jobid, bool *reserved,
                    char **R, int64_t *at, double *ov)
 {
     int rc = -1;
     std::string R_buf = "";
     char *R_buf_c = NULL;
 
-    if (!ctx || !ctx->h) {
+    if (!ctx || !ctx->rctx) {
         errno = EINVAL;
         goto out;
     }
-    if ((rc = reapi_cli_t::match_allocate (ctx->h, orelse_reserve, jobspec,
-                                           jobid, *reserved,
+    if ((rc = reapi_cli_t::match_allocate (ctx->rctx, orelse_reserve, jobspec,
+                                           *jobid, *reserved,
                                            R_buf, *at, *ov)) < 0) {
         goto out;
     }
@@ -116,21 +131,21 @@ out:
 extern "C" int reapi_cli_cancel (reapi_cli_ctx_t *ctx,
                                  const uint64_t jobid, bool noent_ok)
 {
-    if (!ctx || !ctx->h) {
+    if (!ctx || !ctx->rctx) {
         errno = EINVAL;
         return -1;
     }
-    return reapi_cli_t::cancel (ctx->h, jobid, noent_ok);
+    return reapi_cli_t::cancel (ctx->rctx, jobid, noent_ok);
 }
 
 extern "C" int reapi_cli_info (reapi_cli_ctx_t *ctx, const uint64_t jobid,
                                bool *reserved, int64_t *at, double *ov)
 {
-    if (!ctx || !ctx->h) {
+    if (!ctx || !ctx->rctx) {
         errno = EINVAL;
         return -1;
     }
-    return reapi_cli_t::info (ctx->h, jobid, *reserved, *at, *ov);
+    return reapi_cli_t::info (ctx->rctx, jobid, *reserved, *at, *ov);
 }
 
 extern "C" int reapi_cli_stat (reapi_cli_ctx_t *ctx, int64_t *V,
