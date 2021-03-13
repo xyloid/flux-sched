@@ -46,6 +46,13 @@ reapi_cli_ctx_t *reapi_cli_new ();
  */
 void reapi_cli_destroy (reapi_cli_ctx_t *ctx);
 
+/*! Initialize Fluxion with JGF
+ *
+ * \param ctx           reapi_cli_ctx_t context object
+ * \param jgf           jgf string
+ */
+int reapi_cli_initialize (reapi_cli_ctx_t *ctx, const char *jgf);
+
 /*! Match a jobspec to the "best" resources and either allocate
  *  orelse reserve them. The best resources are determined by
  *  the selected match policy.
@@ -68,7 +75,7 @@ void reapi_cli_destroy (reapi_cli_ctx_t *ctx);
  *  \return          0 on success; -1 on error.
  */
 int reapi_cli_match_allocate (reapi_cli_ctx_t *ctx, bool orelse_reserve,
-                              const char *jobspec, const uint64_t jobid,
+                              const char *jobspec, uint64_t *jobid,
                               bool *reserved,
                               char **R, int64_t *at, double *ov);
 
