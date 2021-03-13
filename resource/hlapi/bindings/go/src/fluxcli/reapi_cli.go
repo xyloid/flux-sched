@@ -25,6 +25,7 @@ func ReapiCliDestroy(ctx *ReapiCtx) {
 	C.reapi_cli_destroy((*C.struct_reapi_cli_ctx)(ctx))
 }
 
+
 /* int reapi_cli_initialize (reapi_cli_ctx_t *ctx, const char *jgf); */
 
 func ReapiCliInit(ctx *ReapiCtx, jgf string) (err int) {
@@ -53,6 +54,10 @@ func ReapiCliInit(ctx *ReapiCtx, jgf string) (err int) {
  *                   in terms of elapse time needed to complete
  *                   the match operation.
  *  \return          0 on success; -1 on error.
+ int reapi_module_match_allocate (reapi_module_ctx_t *ctx, bool orelse_reserve,
+   const char *jobspec, const uint64_t jobid,
+   bool *reserved,
+   char **R, int64_t *at, double *ov);
  */
 
 func ReapiCliMatchAllocate(ctx *ReapiCtx, orelse_reserve bool,
@@ -69,6 +74,7 @@ func ReapiCliMatchAllocate(ctx *ReapiCtx, orelse_reserve bool,
 		    (*C.double)(&overhead)))
 	allocated = C.GoString(r)
 	return reserved, allocated, at, overhead, jobid, err
+
 }
 
 /*! Update the resource state with R.
