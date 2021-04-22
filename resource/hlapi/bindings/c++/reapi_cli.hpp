@@ -59,6 +59,11 @@ public:
                      double &ov);
     static int stat (void *h, int64_t &V, int64_t &E,int64_t &J,
                      double &load, double &min, double &max, double &avg);
+    
+    static std::string get_node (std::shared_ptr<resource_context_t> &rctx);
+
+private:
+    static std::string nodename;
 };
 
 

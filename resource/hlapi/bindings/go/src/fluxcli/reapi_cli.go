@@ -15,6 +15,10 @@ func NewReapiCli() *ReapiCtx {
 	return (*ReapiCtx)(C.reapi_cli_new())
 }
 
+func ReapiCliGetNode(ctx *ReapiCtx) string {
+	return C.GoString(C.reapi_cli_get_node((*C.struct_reapi_cli_ctx)(ctx)))
+}
+
 /*! Destroy reapi cli context
 *
 * \param ctx           reapi_cli_ctx_t context object
@@ -25,53 +29,52 @@ func ReapiCliDestroy(ctx *ReapiCtx) {
 	C.reapi_cli_destroy((*C.struct_reapi_cli_ctx)(ctx))
 }
 
-
 /* int reapi_cli_initialize (reapi_cli_ctx_t *ctx, const char *jgf); */
 
 func ReapiCliInit(ctx *ReapiCtx, jgf string) (err int) {
-    err = (int)(C.reapi_cli_initialize((*C.struct_reapi_cli_ctx)(ctx),
-               C.CString(jgf)))
-    return err
+	err = (int)(C.reapi_cli_initialize((*C.struct_reapi_cli_ctx)(ctx),
+		C.CString(jgf)))
+	return err
 }
 
 /*! Match a jobspec to the "best" resources and either allocate
- *  orelse reserve them. The best resources are determined by
- *  the selected match policy.
- *
- *  \param ctx       reapi_cli_ctx_t context object
- *  \param orelse_reserve
- *                   Boolean: if false, only allocate; otherwise, first try
- *                   to allocate and if that fails, reserve.
- *  \param jobspec   jobspec string.
- *  \param jobid     jobid of the uint64_t type.
- *  \param reserved  Boolean into which to return true if this job has been
- *                   reserved instead of allocated.
- *  \param R         String into which to return the resource set either
- *                   allocated or reserved.
- *  \param at        If allocated, 0 is returned; if reserved, actual time
- *                   at which the job is reserved.
- *  \param ov        Double into which to return performance overhead
- *                   in terms of elapse time needed to complete
- *                   the match operation.
- *  \return          0 on success; -1 on error.
- int reapi_module_match_allocate (reapi_module_ctx_t *ctx, bool orelse_reserve,
-   const char *jobspec, const uint64_t jobid,
-   bool *reserved,
-   char **R, int64_t *at, double *ov);
- */
+*  orelse reserve them. The best resources are determined by
+*  the selected match policy.
+*
+*  \param ctx       reapi_cli_ctx_t context object
+*  \param orelse_reserve
+*                   Boolean: if false, only allocate; otherwise, first try
+*                   to allocate and if that fails, reserve.
+*  \param jobspec   jobspec string.
+*  \param jobid     jobid of the uint64_t type.
+*  \param reserved  Boolean into which to return true if this job has been
+*                   reserved instead of allocated.
+*  \param R         String into which to return the resource set either
+*                   allocated or reserved.
+*  \param at        If allocated, 0 is returned; if reserved, actual time
+*                   at which the job is reserved.
+*  \param ov        Double into which to return performance overhead
+*                   in terms of elapse time needed to complete
+*                   the match operation.
+*  \return          0 on success; -1 on error.
+int reapi_module_match_allocate (reapi_module_ctx_t *ctx, bool orelse_reserve,
+  const char *jobspec, const uint64_t jobid,
+  bool *reserved,
+  char **R, int64_t *at, double *ov);
+*/
 
 func ReapiCliMatchAllocate(ctx *ReapiCtx, orelse_reserve bool,
 	jobspec string) (reserved bool, allocated string, at int64, overhead float64, jobid uint64, err int) {
 	var r = C.CString("teststring")
 
-    err = (int)(C.reapi_cli_match_allocate((*C.struct_reapi_cli_ctx)(ctx),
-		    (C.bool)(orelse_reserve),
-		    C.CString(jobspec),
-		    (*C.ulong)(&jobid),
-		    (*C.bool)(&reserved),
-		    &r,
-		    (*C.long)(&at),
-		    (*C.double)(&overhead)))
+	err = (int)(C.reapi_cli_match_allocate((*C.struct_reapi_cli_ctx)(ctx),
+		(C.bool)(orelse_reserve),
+		C.CString(jobspec),
+		(*C.ulong)(&jobid),
+		(*C.bool)(&reserved),
+		&r,
+		(*C.long)(&at),
+		(*C.double)(&overhead)))
 	allocated = C.GoString(r)
 	return reserved, allocated, at, overhead, jobid, err
 

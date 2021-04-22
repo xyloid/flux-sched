@@ -76,6 +76,10 @@ out:
     return rc;    
 }
 
+extern "C" char* reapi_cli_get_node (reapi_cli_ctx_t *ctx) {
+    return strdup(reapi_cli_t::get_node(ctx->rctx).c_str());
+}
+
 extern "C" int reapi_cli_match_allocate (reapi_cli_ctx_t *ctx,
                    bool orelse_reserve, const char *jobspec,
                    uint64_t *jobid, bool *reserved,

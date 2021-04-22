@@ -65,6 +65,8 @@ static std::shared_ptr<f_resource_graph_t> create_filtered_graph (
     return fg;
 }
 
+
+
 static int do_remove (std::shared_ptr<resource_context_t> &ctx, uint64_t jobid)
 {
     int rc = -1;
@@ -178,6 +180,10 @@ out:
     return rctx;
 }
 
+std::string reapi_cli_t::get_node (std::shared_ptr<resource_context_t> &rctx) {
+    return rctx->writers->get_node ();
+}
+
 int reapi_cli_t::match_allocate (std::shared_ptr<resource_context_t> &rctx, 
                                  bool orelse_reserve,
                                  const std::string &jobspec,
@@ -212,6 +218,9 @@ int reapi_cli_t::match_allocate (std::shared_ptr<resource_context_t> &rctx,
             std::cerr << "ERROR: match writer emit: " << strerror (errno) << "\n";
             goto out;
         }
+
+       std::cout << "Node name: " << rctx->writers->get_node () << "\n";
+    //    nodename = rctx->writers->get_node ();
 
         R = o.str ();
         reserved = (at != 0)? true : false;

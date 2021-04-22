@@ -53,6 +53,9 @@ void reapi_cli_destroy (reapi_cli_ctx_t *ctx);
  */
 int reapi_cli_initialize (reapi_cli_ctx_t *ctx, const char *jgf);
 
+
+char* reapi_cli_get_node (reapi_cli_ctx_t *ctx);
+
 /*! Match a jobspec to the "best" resources and either allocate
  *  orelse reserve them. The best resources are determined by
  *  the selected match policy.
