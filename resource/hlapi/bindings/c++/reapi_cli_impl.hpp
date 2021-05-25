@@ -252,7 +252,14 @@ int reapi_cli_t::update_allocate (void *h, const uint64_t jobid,
     return NOT_YET_IMPLEMENTED;
 }
 
-int reapi_cli_t::cancel (std::shared_ptr<resource_context_t> &rctx, 
+int reapi_cli_t::match_allocate_multi (void *h, bool orelse_reserve,
+                                       const char *jobs,
+                                       queue_adapter_base_t *adapter)
+{
+    return NOT_YET_IMPLEMENTED;
+}
+
+int reapi_cli_t::cancel (std::shared_ptr<resource_context_t> &rctx,
                          const uint64_t jobid, bool noent_ok)
 {
     int rc = -1;

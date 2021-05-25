@@ -39,6 +39,7 @@ extern "C" {
 #include <memory>
 #include <cstdint>
 
+#include "resource/hlapi/bindings/c++/reapi.hpp"
 #include "qmanager/config/queue_system_defaults.hpp"
 
 namespace Flux {
@@ -76,6 +77,7 @@ struct t_stamps_t {
     uint64_t running_ts = 0;
     uint64_t rejected_ts = 0;
     uint64_t complete_ts = 0;
+    uint64_t canceled_ts = 0;
 };
 
 /*! Type to store a job's attributes.
@@ -115,15 +117,25 @@ public:
     int insert (std::shared_ptr<job_t> job);
     int remove (flux_jobid_t id);
     const std::shared_ptr<job_t> lookup (flux_jobid_t id);
+    bool is_schedulable ();
+    void set_schedulability (bool scheduable);
+    bool is_scheduled ();
+    void reset_scheduled ();
+    bool is_sched_loop_active ();
+    int set_sched_loop_active (bool active);
 
 protected:
     int reconstruct_queue (std::shared_ptr<job_t> running_job);
     int pending_reprioritize (flux_jobid_t id, unsigned int priority);
+    int process_provisional_cancel ();
+    int insert_pending_job (std::shared_ptr<job_t> &job, bool into_provisional);
+    int erase_pending_job (std::shared_ptr<job_t> &job, bool &found_in_prov);
     std::shared_ptr<job_t> pending_pop ();
     std::shared_ptr<job_t> alloced_pop ();
     std::shared_ptr<job_t> rejected_pop ();
     std::shared_ptr<job_t> complete_pop ();
     std::shared_ptr<job_t> reserved_pop ();
+    std::shared_ptr<job_t> canceled_pop ();
     std::map<std::vector<double>, flux_jobid_t>::iterator to_running (
         std::map<std::vector<double>,
                  flux_jobid_t>::iterator pending_iter,
@@ -135,18 +147,25 @@ protected:
                  flux_jobid_t>::iterator pending_iter,
         const std::string &note);
 
+    bool m_schedulable = false;
+    bool m_scheduled = false;
+    bool m_sched_loop_active = false;
     uint64_t m_pq_cnt = 0;
     uint64_t m_rq_cnt = 0;
     uint64_t m_dq_cnt = 0;
     uint64_t m_cq_cnt = 0;
     uint64_t m_oq_cnt = 0;
+    uint64_t m_cancel_cnt = 0;
     unsigned int m_queue_depth = DEFAULT_QUEUE_DEPTH;
     unsigned int m_max_queue_depth = MAX_QUEUE_DEPTH;
     std::map<std::vector<double>, flux_jobid_t> m_pending;
+    std::map<std::vector<double>, flux_jobid_t> m_pending_provisional;
+    std::map<uint64_t, flux_jobid_t> m_pending_cancel_provisional;
     std::map<uint64_t, flux_jobid_t> m_running;
     std::map<uint64_t, flux_jobid_t> m_alloced;
     std::map<uint64_t, flux_jobid_t> m_complete;
     std::map<uint64_t, flux_jobid_t> m_rejected;
+    std::map<uint64_t, flux_jobid_t> m_canceled;
     std::map<flux_jobid_t, std::shared_ptr<job_t>> m_jobs;
     std::unordered_map<std::string, std::string> m_qparams;
     std::unordered_map<std::string, std::string> m_pparams;
@@ -159,7 +178,8 @@ protected:
  *  and pending_pop interface implementations are provided through
  *  its parent class (detail::queue_policy_base_impl_t).
  */
-class queue_policy_base_t : public detail::queue_policy_base_impl_t
+class queue_policy_base_t : public detail::queue_policy_base_impl_t,
+                            public resource_model::queue_adapter_base_t
 {
 public:
     /*! The destructor that must be implemented by derived classes.
@@ -182,7 +202,9 @@ public:
      *                   Boolean indicating if you want to use the
      *                   allocated job queue or not. This affects the
      *                   alloced_pop method.
-     *  \return          0 on success; -1 on error.
+     *  \return          0 on success; -1 on error; 1 when a previous
+     *                   loop invocation is still active under asynchronous
+     *                   execution.
      *                       EINVAL: invalid argument.
      */
     virtual int run_sched_loop (void *h, bool use_alloced_queue) = 0;
@@ -240,7 +262,16 @@ public:
      */
     void get_params (std::string &q_p, std::string &p_p);
 
+    /*! Return the queue depth used for this queue. The queue depth
+     *  is the depth of its pending-job queue only upto which it
+     *  considers for scheduling to deal with unbounded queue length.
+     */
+    unsigned int get_queue_depth ();
+
     /*! Append a job into the internal pending-job queue.
+     *  If succeeds, it changes the pending job queue state and thus
+     *  this queue becomes "schedulable": i.e., is_schedulable()
+     *  returns true;
      *
      *  \param pending_job
      *                   a shared pointer pointing to a job_t object.
@@ -251,6 +282,9 @@ public:
 
     /*! Remove a job whose jobid is id from any internal queues
      *  (e.g., pending queue, running queue, and alloced queue.)
+     *  If succeeds, it changes the pending queue or resource
+     *  state. This queue becomes "schedulable" if pending job
+     *  queue is not empty: i.e., is_schedulable() returns true;
      *
      *  \param id        jobid of flux_jobid_t type.
      *  \return          0 on success; -1 on error.
@@ -339,6 +373,73 @@ public:
      *                   on success; nullptr when the queue is empty.
      */
     std::shared_ptr<job_t> complete_pop ();
+
+    /*! Pop the first job from the internal canceled job queue.
+     *  The popped is completely graduated from the queue policy layer.
+     *  \return          a shared pointer pointing to a job_t object
+     *                   on success; nullptr when the queue is empty.
+     */
+    std::shared_ptr<job_t> canceled_pop ();
+
+    /*! Return true if this queue has become schedulable since
+     *  its state had been reset with set_schedulability (false).
+     *  "Being schedulable" means one or more job or resource events
+     *  have occurred such a way that the scheduler should run the
+     *  scheduling loop for the pending jobs: e.g., a new job was
+     *  inserted into the pending job queue or a job was removed from
+     *  the running job queue so that its resource was released.
+     */
+    bool is_schedulable ();
+
+    /*! Set this queue's schedulability. After this call,
+     *  is_schedulable() will return the newly set schedulability
+     *  until a new job or resource event occurs.
+     */
+    void set_schedulability (bool schedulable);
+
+    /*! Return true if the job state of this queue has changed
+     *  as the result of the invocation of schedule loop and
+     *  and/or of other conditions.
+     */
+    bool is_scheduled ();
+
+    /*! Reset this queue's "scheduled" state.
+     */
+    void reset_scheduled ();
+
+    /*! Implement queue_adapter_base_t's pure virtual method
+     *  so that this queue can be adapted for use within high-level
+     *  resource API. Return true if the scheduling loop is active.
+     */
+    virtual bool is_sched_loop_active ();
+
+    /*! Implement queue_adapter_base_t's pure virtual method
+     *  so that this queue can be adapted for use within high-level
+     *  resource API. Set the state of the scheduling loop.
+     *  \param active    true when the scheduling loop becomes
+     *                   active; false when becomes inactive.
+     *  \return          0 on success; otherwise -1 an error with errno set
+     *                   (Note: when the scheduling loop becomes inactive,
+     *                    internal queueing can occur and an error can arise):
+     *                       - ENOENT (job is not found from some queue)
+     *                       - EEXIST (enqueue fails due to an existent entry)
+     */
+    virtual int set_sched_loop_active (bool active);
+
+    /*! Implement queue_adapter_base_t's pure virtual method
+     *  so that this queue can be adapted for use within high-level
+     *  resource API. When a match succeeds, this method is called back
+     *  by reapi_t.
+     */
+    virtual int handle_match_success (int64_t jobid, const char *status,
+                                      const char *R, int64_t at, double ov);
+
+    /*! Implement queue_adapter_base_t's pure virtual method
+     *  so that this queue can be adapted for use within high-level
+     *  resource API. When a match fails, this method is called back
+     *  by reapi_t.
+     */
+    virtual int handle_match_failure (int errcode);
 
 private:
     int set_params (const std::string &params,

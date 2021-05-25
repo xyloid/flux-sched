@@ -25,6 +25,7 @@
 
 #include <map>
 #include <cstdint>
+#include <limits>
 #include "resource/schema/data_std.hpp"
 #include "resource/schema/ephemeral.hpp"
 #include "resource/planner/planner_multi.h"
@@ -75,10 +76,13 @@ public:
     uint64_t get_needs () const;
     int get_exclusive () const;
     uint64_t get_trav_token () const;
+    uint64_t get_weight () const;
+    void set_weight (uint64_t);
 
 private:
     uint64_t m_needs = 0;
     uint64_t m_trav_token = 0;
+    uint64_t m_weight = std::numeric_limits<uint64_t>::max ();
     int m_exclusive = 0;
 };
 

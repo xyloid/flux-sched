@@ -156,8 +156,8 @@ AC_SUBST(fluxionpylinkdir)
 fluxmod_ldflags="-Wl,--no-undefined -avoid-version -export-symbols-regex '^mod_(main|name|service)\$\$' --disable-static -shared -export-dynamic"
 AC_SUBST(fluxmod_ldflags)
 
-shellplugin_ldflags="-Wl,--no-undefined -avoid-version -export-symbols-regex '^flux_plugin_init\$\$' --disable-static -shared -export-dynamic"
-AC_SUBST(shellplugin_ldflags)
+fluxplugin_ldflags="-avoid-version -export-symbols-regex '^flux_plugin_init\$\$' --disable-static -shared -export-dynamic"
+AC_SUBST(fluxplugin_ldflags)
 
 fluxlib_ldflags="-shared -export-dynamic --disable-static -Wl,--no-undefined"
 AC_SUBST(fluxlib_ldflags)
@@ -170,6 +170,7 @@ AC_CONFIG_FILES([Makefile
   src/common/librbtree/Makefile
   src/common/c++wrappers/Makefile
   src/common/c++wrappers/test/Makefile
+  src/common/libczmqcontainers/Makefile
   src/cmd/Makefile
   src/python/Makefile
   src/python/fluxion/Makefile

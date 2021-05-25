@@ -23,6 +23,7 @@
 \*****************************************************************************/
 
 #include <cstdint>
+#include <limits>
 #include <sstream>
 #include <cerrno>
 #include <map>
@@ -232,6 +233,9 @@ resource_ctx_t::~resource_ctx_t ()
 static void match_request_cb (flux_t *h, flux_msg_handler_t *w,
                               const flux_msg_t *msg, void *arg);
 
+static void match_multi_request_cb (flux_t *h, flux_msg_handler_t *w,
+                                    const flux_msg_t *msg, void *arg);
+
 static void update_request_cb (flux_t *h, flux_msg_handler_t *w,
                                const flux_msg_t *msg, void *arg);
 
@@ -271,6 +275,8 @@ static void ns_info_request_cb (flux_t *h, flux_msg_handler_t *w,
 static const struct flux_msg_handler_spec htab[] = {
     { FLUX_MSGTYPE_REQUEST,
       "sched-fluxion-resource.match", match_request_cb, 0 },
+    { FLUX_MSGTYPE_REQUEST,
+       "sched-fluxion-resource.match_multi", match_multi_request_cb, 0 },
     { FLUX_MSGTYPE_REQUEST,
       "sched-fluxion-resource.update", update_request_cb, 0},
     { FLUX_MSGTYPE_REQUEST,
@@ -317,7 +323,7 @@ static void set_default_args (resource_args_t &args)
     args.load_format = "hwloc";
     args.load_allowlist = "";
     args.match_subsystems = "containment";
-    args.match_policy = "high";
+    args.match_policy = "first";
     args.prune_filters = "ALL:core";
     args.match_format = "rv1_nosched";
     args.reserve_vtx_vec = 0;
@@ -344,7 +350,7 @@ static std::shared_ptr<resource_ctx_t> getctx (flux_t *h)
         set_default_args (ctx->args);
         ctx->perf.load = 0.0f;
         ctx->perf.njobs = 0;
-        ctx->perf.min = DBL_MAX;
+        ctx->perf.min = std::numeric_limits<double>::max();
         ctx->perf.max = 0.0f;
         ctx->perf.accum = 0.0f;
         ctx->matcher = nullptr; /* Cannot be allocated at this point */
@@ -1809,6 +1815,85 @@ static void match_request_cb (flux_t *h, flux_msg_handler_t *w,
 
 error:
     if (flux_respond_error (h, msg, errno, NULL) < 0)
+        flux_log_error (h, "%s: flux_respond_error", __FUNCTION__);
+}
+
+static void match_multi_request_cb (flux_t *h, flux_msg_handler_t *w,
+                                    const flux_msg_t *msg, void *arg)
+{
+    size_t index;
+    json_t *value;
+    json_error_t err;
+    int saved_errno;
+    json_t *jobs = nullptr;
+    uint64_t jobid = 0;
+    std::string errmsg;
+    const char *cmd = nullptr;
+    const char *jobs_str = nullptr;
+    std::shared_ptr<resource_ctx_t> ctx = getctx ((flux_t *)arg);
+
+    if (!flux_msg_is_streaming (msg)) {
+        errno = EPROTO;
+        goto error;
+    }
+    if (flux_request_unpack (msg, NULL, "{s:s s:s}",
+                                          "cmd", &cmd,
+                                          "jobs", &jobs_str) < 0)
+        goto error;
+    if ( !(jobs = json_loads (jobs_str, 0, &err))) {
+        errno = ENOMEM;
+        goto error;
+    }
+
+    json_array_foreach(jobs, index, value) {
+        const char *js_str;
+        int64_t at = 0;
+        int64_t now = 0;
+        double ov = 0.0f;
+        std::string status = "";
+        std::stringstream R;
+
+        if (json_unpack (value, "{s:I s:s}",
+                                  "jobid", &jobid,
+                                  "jobspec", &js_str) < 0)
+            goto error;
+        if (is_existent_jobid (ctx, jobid)) {
+            errno = EINVAL;
+            flux_log_error (h, "%s: existent job (%jd).",
+                            __FUNCTION__, static_cast<intmax_t> (jobid));
+            goto error;
+        }
+        if (run_match (ctx, jobid, cmd, js_str, &now, &at, &ov, R) < 0) {
+            if (errno != EBUSY && errno != ENODEV)
+                flux_log_error (ctx->h,
+                        "%s: match failed due to match error (id=%jd)",
+                        __FUNCTION__, static_cast<intmax_t> (jobid));
+            goto error;
+        }
+
+        status = get_status_string (now, at);
+        if (flux_respond_pack (h, msg, "{s:I s:s s:f s:s s:I}",
+                                         "jobid", jobid,
+                                         "status", status.c_str (),
+                                         "overhead", ov,
+                                         "R", R.str ().c_str (),
+                                         "at", at) < 0) {
+            flux_log_error (h, "%s", __FUNCTION__);
+            goto error;
+        }
+    }
+    errno = ENODATA;
+    jobid = 0;
+error:
+    if (jobs) {
+        saved_errno = errno;
+        json_decref (jobs);
+        errno = saved_errno;
+    }
+    if (jobid != 0)
+        errmsg += "jobid=" + std::to_string (jobid);
+    if (flux_respond_error (h, msg, errno,
+                            !errmsg.empty ()? errmsg.c_str () : nullptr) < 0)
         flux_log_error (h, "%s: flux_respond_error", __FUNCTION__);
 }
 

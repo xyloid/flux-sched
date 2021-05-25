@@ -20,6 +20,7 @@
  *  See also:  http://www.gnu.org/licenses/
 \*****************************************************************************/
 
+#include <limits>
 #include "resource/schema/infra_data.hpp"
 
 namespace Flux {
@@ -205,6 +206,16 @@ int relation_infra_t::get_exclusive () const
 uint64_t relation_infra_t::get_trav_token () const
 {
     return m_trav_token;
+}
+
+uint64_t relation_infra_t::get_weight () const
+{
+    return m_weight;
+}
+
+void relation_infra_t::set_weight (uint64_t weight)
+{
+    m_weight = weight;
 }
 
 } // resource_model

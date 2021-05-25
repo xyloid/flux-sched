@@ -65,6 +65,7 @@ struct jobmeta_t {
     alloc_type_t alloc_type = alloc_type_t::AT_ALLOC;
     int64_t jobid = -1;
     int64_t at = -1;
+    int64_t now = -1;
     uint64_t duration = SYSTEM_DEFAULT_DURATION; // will need config ultimately
 
     bool is_queue_set () const {
@@ -79,6 +80,7 @@ struct jobmeta_t {
                 alloc_type_t alloc, int64_t id, int64_t t)
     {
         at = t;
+        now = t;
         jobid = id;
         alloc_type = alloc;
         if (jobspec.attributes.system.duration == 0.0f
@@ -118,6 +120,8 @@ public:
     const std::shared_ptr<const dfu_match_cb_t> get_match_cb () const;
     const std::string &err_message () const;
     const expr_eval_api_t &get_expr_eval () const;
+    const unsigned int get_preorder_count () const;
+    const unsigned int get_postorder_count () const;
 
     void set_graph (std::shared_ptr<f_resource_graph_t> g);
     void set_graph_db (std::shared_ptr<resource_graph_db_t> db);
@@ -333,12 +337,12 @@ private:
      * including slot match
      */
     int match (vtx_t u, const std::vector<Jobspec::Resource> &resources,
-                const Jobspec::Resource **slot_resource,
+                const Jobspec::Resource **slot_resource, unsigned int *nslots,
                 const Jobspec::Resource **match_resource);
     bool slot_match (vtx_t u, const Jobspec::Resource *slot_resource);
     const std::vector<Jobspec::Resource> &test (vtx_t u,
              const std::vector<Jobspec::Resource> &resources,
-             bool &prestine, match_kind_t &ko);
+             bool &prestine, unsigned int &nslots, match_kind_t &ko);
 
     /*! Accumulate count into accum if type matches with one of the resource
      *  types used in the scheduler-driven aggregate update (SDAU) scheme.
@@ -358,14 +362,34 @@ private:
     // Explore for resource matching -- only DFV or UPV
     int explore (const jobmeta_t &meta, vtx_t u, const subsystem_t &subsystem,
                  const std::vector<Jobspec::Resource> &resources, bool prestine,
-                 bool *excl, visit_t direction, scoring_api_t &to_parent);
+                 bool *excl, visit_t direction, scoring_api_t &dfu,
+                 unsigned int multiplier=1);
+    int explore_statically (const jobmeta_t &meta, vtx_t u,
+                            const subsystem_t &subsystem,
+                            const std::vector<Jobspec::Resource> &resources,
+                            bool prestine, bool *excl, visit_t direction,
+                            scoring_api_t &dfu);
+    int explore_dynamically (const jobmeta_t &meta, vtx_t u,
+                             const subsystem_t &subsystem,
+                             const std::vector<Jobspec::Resource> &resources,
+                             bool prestine, bool *excl, visit_t direction,
+                             scoring_api_t &dfu, unsigned int multiplier=1);
+
+    bool is_enough (const subsystem_t &subsystem,
+                    const std::vector<Jobspec::Resource> &resources,
+                    scoring_api_t &dfu, unsigned int multiplier);
+    int new_sat_types (const subsystem_t &subsystem,
+                       const std::vector<Jobspec::Resource> &resources,
+                       scoring_api_t &dfu, unsigned int multiplier,
+                       std::set<std::string> &sat_types);
     int aux_upv (const jobmeta_t &meta, vtx_t u, const subsystem_t &subsystem,
                  const std::vector<Jobspec::Resource> &resources, bool prestine,
                  bool *excl, scoring_api_t &to_parent);
     int cnt_slot (const std::vector<Jobspec::Resource> &slot_shape,
                   scoring_api_t &dfu_slot);
     int dom_slot (const jobmeta_t &meta, vtx_t u,
-                  const std::vector<Jobspec::Resource> &resources, bool prestine,
+                  const std::vector<Jobspec::Resource> &resources,
+                  unsigned int nslots,  bool prestine,
                   bool *excl, scoring_api_t &dfu);
     int dom_exp (const jobmeta_t &meta, vtx_t u,
                  const std::vector<Jobspec::Resource> &resources, bool prestine,
@@ -405,6 +429,8 @@ private:
                       const std::map<std::string, int64_t> &dfu);
     int upd_idata (vtx_t u, const subsystem_t &s, const jobmeta_t &jobmeta,
                    const std::map<std::string, int64_t> &dfu);
+    int upd_by_outedges (const subsystem_t &subsystem,
+                         const jobmeta_t &jobmeta, vtx_t u, edg_t e);
     int upd_plan (vtx_t u, const subsystem_t &s, unsigned int needs,
                   bool excl, const jobmeta_t &jobmeta, bool full, int &n);
     int accum_to_parent (vtx_t u, const subsystem_t &s, unsigned int needs,
@@ -444,6 +470,8 @@ private:
     color_t m_color;
     uint64_t m_best_k_cnt = 0;
     unsigned int m_trav_level = 0;
+    unsigned int m_preorder = 0;
+    unsigned int m_postorder = 0;
     std::shared_ptr<std::map<subsystem_t, vtx_t>> m_roots = nullptr;
     std::shared_ptr<f_resource_graph_t> m_graph = nullptr;
     std::shared_ptr<resource_graph_db_t> m_graph_db = nullptr;

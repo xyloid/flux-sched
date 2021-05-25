@@ -29,7 +29,6 @@
 #include <sstream>
 #include <algorithm>
 #include <iterator>
-#include <cstdint>
 #include <limits>
 #include <memory>
 #include <readline/readline.h>
@@ -139,14 +138,15 @@ static void usage (int code)
 "                ALL: Aware of everything.\n"
 "            (default=CA).\n"
 "\n"
-"    -P, --match-policy=<low|high|locality|variation>\n"
+"    -P, --match-policy=<low|high|first|locality|variation>\n"
 "            Set the resource match selection policy. Available policies are:\n"
 "                high: Select resources with high ID first\n"
 "                low: Select resources with low ID first\n"
+"                first: Select the first matching resources and stop the search\n"
 "                locality: Select contiguous resources first in their ID space\n"
 "                variation: Allocate resources based on performance classes.\n"
 "				 (perf_class must be set using set-property).\n"
-"            	 (default=high).\n"
+"            	 (default=first).\n"
 "\n"
 "    -F, --match-format=<simple|pretty_simple|jgf|rlite|rv1|rv1_nosched>\n"
 "            Specify the emit format of the matched resource set.\n"
@@ -198,7 +198,7 @@ static void set_default_params (std::shared_ptr<resource_context_t> &ctx)
     ctx->params.load_format = "grug";
     ctx->params.load_allowlist = "";
     ctx->params.matcher_name = "CA";
-    ctx->params.matcher_policy = "high";
+    ctx->params.matcher_policy = "first";
     ctx->params.o_fname = "";
     ctx->params.r_fname = "";
     ctx->params.o_fext = "dot";
@@ -718,7 +718,7 @@ static std::shared_ptr<resource_context_t> init_resource_query (int c,
 
     set_default_params (ctx);
     process_args (ctx, c, v);
-    ctx->perf.min = DBL_MAX;
+    ctx->perf.min = std::numeric_limits<double>::max();
     ctx->perf.max = 0.0f;
     ctx->perf.accum = 0.0f;
     if ( !(ctx->matcher = create_match_cb (ctx->params.matcher_policy))) {

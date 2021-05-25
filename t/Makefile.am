@@ -41,6 +41,7 @@ TESTS = \
     t1016-nest-namespace.t \
     t1017-rv1-bootstrap.t \
     t1018-rv1-bootstrap2.t \
+    t1019-qmanager-async.t \
     t2000-tree-basic.t \
     t2001-tree-real.t \
     t3000-jobspec.t \
@@ -73,6 +74,8 @@ TESTS = \
     t3026-resource-sibling.t \
     t3027-resource-RV.t \
     t3028-resource-grow.t \
+    t3029-resource-prune.t \
+    t3030-resource-multi.t \
     t4000-match-params.t \
     t4001-match-allocate.t \
     t4002-match-reserve.t \
