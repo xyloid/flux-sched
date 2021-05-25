@@ -65,7 +65,12 @@ static std::shared_ptr<f_resource_graph_t> create_filtered_graph (
     return fg;
 }
 
-
+double get_elapse_time (timeval &st, timeval &et)
+{
+    double ts1 = (double)st.tv_sec + (double)st.tv_usec/1000000.0f;
+    double ts2 = (double)et.tv_sec + (double)et.tv_usec/1000000.0f;
+    return ts2 - ts1;
+}
 
 static int do_remove (std::shared_ptr<resource_context_t> &ctx, uint64_t jobid)
 {
@@ -97,23 +102,23 @@ std::shared_ptr<resource_context_t> reapi_cli_t::initialize (
         goto out;
     }
 
-     rctx->perf.min = DBL_MAX;
-     rctx->perf.max = 0.0f;
-     rctx->perf.accum = 0.0f;
-     rctx->params.load_file = "conf/default";
-     rctx->params.load_format = "jgf";
-     rctx->params.load_allowlist = "";
-     rctx->params.matcher_name = "CA";
-     rctx->params.matcher_policy = "high";
-     rctx->params.o_fname = "";
-     rctx->params.r_fname = "";
-     rctx->params.o_fext = "dot";
-     rctx->params.match_format = "jgf";
-     rctx->params.o_format = emit_format_t::GRAPHVIZ_DOT;
-     rctx->params.prune_filters = "ALL:core";
-     rctx->params.reserve_vtx_vec = 0;
-     rctx->params.elapse_time = false;
-     rctx->params.disable_prompt = false;
+    rctx->perf.min = DBL_MAX;
+    rctx->perf.max = 0.0f;
+    rctx->perf.accum = 0.0f;
+    rctx->params.load_file = "conf/default";
+    rctx->params.load_format = "jgf";
+    rctx->params.load_allowlist = "";
+    rctx->params.matcher_name = "CA";
+    rctx->params.matcher_policy = "first";
+    rctx->params.o_fname = "";
+    rctx->params.r_fname = "";
+    rctx->params.o_fext = "dot";
+    rctx->params.match_format = "jgf";
+    rctx->params.o_format = emit_format_t::GRAPHVIZ_DOT;
+    rctx->params.prune_filters = "ALL:core";
+    rctx->params.reserve_vtx_vec = 0;
+    rctx->params.elapse_time = false;
+    rctx->params.disable_prompt = false;
 
     if ( !(rctx->matcher = create_match_cb (rctx->params.matcher_policy))) {
         rctx = nullptr;
@@ -193,12 +198,17 @@ int reapi_cli_t::match_allocate (std::shared_ptr<resource_context_t> &rctx,
     int rc = -1;
     at = 0;
     ov = 0.0f;
-    double elapse = 0.0f;
     job_lifecycle_t st;
+    struct timeval start_time, end_time;
     jobid = rctx->jobid_counter;
     try {
         Flux::Jobspec::Jobspec job {jobspec};
         std::stringstream o;
+
+        if ( (rc = gettimeofday (&start_time, NULL)) < 0) {
+            std::cerr << "ERROR: gettimeofday: " << strerror (errno) << std::endl;
+            goto out;
+        }
 
         if (orelse_reserve)
             rc = rctx->traverser->run (job, rctx->writers, match_op_t::
@@ -226,6 +236,11 @@ int reapi_cli_t::match_allocate (std::shared_ptr<resource_context_t> &rctx,
         reserved = (at != 0)? true : false;
         st = (reserved)? job_lifecycle_t::RESERVED : job_lifecycle_t::ALLOCATED;
 
+        if ( (rc = gettimeofday (&end_time, NULL)) < 0) {
+            std::cerr << "ERROR: gettimeofday: " << strerror (errno) << std::endl;
+            goto out;
+        }
+
     } catch (Flux::Jobspec::parse_error &e) {
         std::cerr << "ERROR: Jobspec error for " << rctx->jobid_counter <<": "
                   << e.what () << "\n";
@@ -233,12 +248,14 @@ int reapi_cli_t::match_allocate (std::shared_ptr<resource_context_t> &rctx,
         goto out;
     }
 
+    ov = get_elapse_time (start_time, end_time);
+
     if (reserved)
         rctx->reservations[jobid] = jobid;
     else
         rctx->allocations[jobid] = jobid;
     rctx->jobs[jobid] = std::make_shared<job_info_t> (jobid, st, at,
-                                                      "", "", elapse);
+                                                      "", "", ov);
     rctx->jobid_counter++;
 
 out:
