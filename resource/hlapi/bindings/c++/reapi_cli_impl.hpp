@@ -104,7 +104,7 @@ std::shared_ptr<resource_context_t> reapi_cli_t::initialize (
      rctx->params.load_format = "jgf";
      rctx->params.load_allowlist = "";
      rctx->params.matcher_name = "CA";
-     rctx->params.matcher_policy = "high";
+     rctx->params.matcher_policy = "first";
      rctx->params.o_fname = "";
      rctx->params.r_fname = "";
      rctx->params.o_fext = "dot";
