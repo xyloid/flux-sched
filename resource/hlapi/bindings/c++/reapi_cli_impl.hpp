@@ -97,23 +97,23 @@ std::shared_ptr<resource_context_t> reapi_cli_t::initialize (
         goto out;
     }
 
-     rctx->perf.min = DBL_MAX;
-     rctx->perf.max = 0.0f;
-     rctx->perf.accum = 0.0f;
-     rctx->params.load_file = "conf/default";
-     rctx->params.load_format = "jgf";
-     rctx->params.load_allowlist = "";
-     rctx->params.matcher_name = "CA";
-     rctx->params.matcher_policy = "first";
-     rctx->params.o_fname = "";
-     rctx->params.r_fname = "";
-     rctx->params.o_fext = "dot";
-     rctx->params.match_format = "jgf";
-     rctx->params.o_format = emit_format_t::GRAPHVIZ_DOT;
-     rctx->params.prune_filters = "ALL:core";
-     rctx->params.reserve_vtx_vec = 0;
-     rctx->params.elapse_time = false;
-     rctx->params.disable_prompt = false;
+    rctx->perf.min = DBL_MAX;
+    rctx->perf.max = 0.0f;
+    rctx->perf.accum = 0.0f;
+    rctx->params.load_file = "conf/default";
+    rctx->params.load_format = "jgf";
+    rctx->params.load_allowlist = "";
+    rctx->params.matcher_name = "CA";
+    rctx->params.matcher_policy = "first";
+    rctx->params.o_fname = "";
+    rctx->params.r_fname = "";
+    rctx->params.o_fext = "dot";
+    rctx->params.match_format = "jgf";
+    rctx->params.o_format = emit_format_t::GRAPHVIZ_DOT;
+    rctx->params.prune_filters = "ALL:core";
+    rctx->params.reserve_vtx_vec = 0;
+    rctx->params.elapse_time = false;
+    rctx->params.disable_prompt = false;
 
     if ( !(rctx->matcher = create_match_cb (rctx->params.matcher_policy))) {
         rctx = nullptr;
