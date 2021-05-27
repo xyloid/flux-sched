@@ -83,7 +83,10 @@ extern "C" char* reapi_cli_get_node (reapi_cli_ctx_t *ctx) {
 extern "C" int reapi_cli_match_allocate (reapi_cli_ctx_t *ctx,
                    bool orelse_reserve, const char *jobspec,
                    uint64_t *jobid, bool *reserved,
-                   char **R, int64_t *at, double *ov)
+                   char **R, int64_t *at, 
+                   unsigned int *preorder_count,
+                   unsigned int *postorder_count,
+                   double *ov)
 {
     int rc = -1;
     std::string R_buf = "";
@@ -95,7 +98,9 @@ extern "C" int reapi_cli_match_allocate (reapi_cli_ctx_t *ctx,
     }
     if ((rc = reapi_cli_t::match_allocate (ctx->rctx, orelse_reserve, jobspec,
                                            *jobid, *reserved,
-                                           R_buf, *at, *ov)) < 0) {
+                                           R_buf, *at, 
+                                           *preorder_count,
+                                           *postorder_count, *ov)) < 0) {
         goto out;
     }
     if ( !(R_buf_c = strdup (R_buf.c_str ()))) {
