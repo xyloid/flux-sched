@@ -32,18 +32,18 @@ func main() {
 	}
 	fmt.Printf("Jobspec:\n %s\n", jobspec)
 
-	reserved, allocated, at, overhead, jobid, fluxerr := ReapiCliMatchAllocate(ctx, *reserve, string(jobspec))
+	reserved, allocated, at, pre, post, overhead, jobid, fluxerr := ReapiCliMatchAllocate(ctx, *reserve, string(jobspec))
 	if fluxerr != 0 {
 		fmt.Println("Error in ReapiCliMatchAllocate")
 		return
 	}
-	printOutput(reserved, allocated, at, overhead, jobid, fluxerr)
-	reserved, allocated, at, overhead, jobid, fluxerr = ReapiCliMatchAllocate(ctx, *reserve, string(jobspec))
+	printOutput(reserved, allocated, at, pre, post, overhead, jobid, fluxerr)
+	reserved, allocated, at, pre, post, overhead, jobid, fluxerr = ReapiCliMatchAllocate(ctx, *reserve, string(jobspec))
 	if fluxerr != 0 {
 		fmt.Println("Error in ReapiCliMatchAllocate")
 		return
 	}
-	printOutput(reserved, allocated, at, overhead, jobid, fluxerr)
+	printOutput(reserved, allocated, at, pre, post, overhead, jobid, fluxerr)
 	fluxerr = ReapiCliCancel(ctx, 1, false)
 	if fluxerr != 0 {
 		fmt.Println("Error in ReapiCliCancel")
@@ -67,7 +67,7 @@ func main() {
 
 }
 
-func printOutput(reserved bool, allocated string, at int64, overhead float64, jobid uint64, fluxerr int) {
+func printOutput(reserved bool, allocated string, at int64, pre uint32, post uint32, overhead float64, jobid uint64, fluxerr int) {
 	fmt.Println("\n\t----Match Allocate output---")
-	fmt.Printf("jobid: %d\nreserved: %t\nallocated: %s\nat: %d\noverhead: %f\nerror: %d\n", jobid, reserved, allocated, at, overhead, fluxerr)
+	fmt.Printf("jobid: %d\nreserved: %t\nallocated: %s\nat: %d\npreorder visit count: %d\npostorder visit count: %d\noverhead: %f\nerror: %d\n", jobid, reserved, allocated, at, pre, post, overhead, fluxerr)
 }

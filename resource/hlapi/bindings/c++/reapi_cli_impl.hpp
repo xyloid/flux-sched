@@ -193,20 +193,25 @@ int reapi_cli_t::match_allocate (std::shared_ptr<resource_context_t> &rctx,
                                  bool orelse_reserve,
                                  const std::string &jobspec,
                                  uint64_t &jobid, bool &reserved,
-                                 std::string &R, int64_t &at, double &ov)
+                                 std::string &R, int64_t &at, 
+                                 unsigned int &preorder_count, 
+                                 unsigned int &postorder_count, 
+                                 double &ov)
 {
     int rc = -1;
     at = 0;
     ov = 0.0f;
     job_lifecycle_t st;
     struct timeval start_time, end_time;
+    preorder_count = 0;
+    postorder_count = 0;
     jobid = rctx->jobid_counter;
     try {
         Flux::Jobspec::Jobspec job {jobspec};
         std::stringstream o;
 
         if ( (rc = gettimeofday (&start_time, NULL)) < 0) {
-            std::cerr << "ERROR: gettimeofday: " << strerror (errno) << std::endl;
+            std::cerr << "ERROR: gettimeofday: " << strerror (errno) <<  "\n";
             goto out;
         }
 
@@ -237,7 +242,7 @@ int reapi_cli_t::match_allocate (std::shared_ptr<resource_context_t> &rctx,
         st = (reserved)? job_lifecycle_t::RESERVED : job_lifecycle_t::ALLOCATED;
 
         if ( (rc = gettimeofday (&end_time, NULL)) < 0) {
-            std::cerr << "ERROR: gettimeofday: " << strerror (errno) << std::endl;
+            std::cerr << "ERROR: gettimeofday: " << strerror (errno) <<  "\n";
             goto out;
         }
 
@@ -249,6 +254,8 @@ int reapi_cli_t::match_allocate (std::shared_ptr<resource_context_t> &rctx,
     }
 
     ov = get_elapse_time (start_time, end_time);
+    preorder_count = rctx->traverser->get_total_preorder_count ();
+    postorder_count = rctx->traverser->get_total_postorder_count ();
 
     if (reserved)
         rctx->reservations[jobid] = jobid;

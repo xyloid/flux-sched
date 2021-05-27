@@ -64,7 +64,9 @@ int reapi_module_match_allocate (reapi_module_ctx_t *ctx, bool orelse_reserve,
 */
 
 func ReapiCliMatchAllocate(ctx *ReapiCtx, orelse_reserve bool,
-	jobspec string) (reserved bool, allocated string, at int64, overhead float64, jobid uint64, err int) {
+	jobspec string) (reserved bool, allocated string, at int64,
+	preorder_count uint32, postorder_count uint32, overhead float64,
+	jobid uint64, err int) {
 	var r = C.CString("teststring")
 
 	err = (int)(C.reapi_cli_match_allocate((*C.struct_reapi_cli_ctx)(ctx),
@@ -74,9 +76,12 @@ func ReapiCliMatchAllocate(ctx *ReapiCtx, orelse_reserve bool,
 		(*C.bool)(&reserved),
 		&r,
 		(*C.long)(&at),
+		(*C.uint)(&preorder_count),
+		(*C.uint)(&postorder_count),
 		(*C.double)(&overhead)))
 	allocated = C.GoString(r)
-	return reserved, allocated, at, overhead, jobid, err
+	return reserved, allocated, at, preorder_count, postorder_count, overhead,
+		jobid, err
 
 }
 

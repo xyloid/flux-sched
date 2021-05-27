@@ -48,7 +48,9 @@ public:
                                bool orelse_reserve,
                                const std::string &jobspec,
                                uint64_t &jobid, bool &reserved,
-                               std::string &R, int64_t &at, double &ov);
+                               std::string &R, int64_t &at, 
+                               unsigned int &preorder_count, 
+                               unsigned int &postorder_count, double &ov);
     static int match_allocate_multi (void *h, bool orelse_reserve,
                                      const char *jobs,
                                      queue_adapter_base_t *adapter);

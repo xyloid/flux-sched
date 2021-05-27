@@ -72,6 +72,10 @@ char* reapi_cli_get_node (reapi_cli_ctx_t *ctx);
  *                   allocated or reserved.
  *  \param at        If allocated, 0 is returned; if reserved, actual time
  *                   at which the job is reserved.
+ *  \param preorder_count Unsigned int into which to return the traverser 
+ *                   preorder count.
+ *  \param postorder_count Unsigned int into which to return the traverser 
+ *                   postorder count.
  *  \param ov        Double into which to return performance overhead
  *                   in terms of elapse time needed to complete
  *                   the match operation.
@@ -80,7 +84,10 @@ char* reapi_cli_get_node (reapi_cli_ctx_t *ctx);
 int reapi_cli_match_allocate (reapi_cli_ctx_t *ctx, bool orelse_reserve,
                               const char *jobspec, uint64_t *jobid,
                               bool *reserved,
-                              char **R, int64_t *at, double *ov);
+                              char **R, int64_t *at, 
+                              unsigned int *preorder_count,
+                              unsigned int *postorder_count,
+                              double *ov);
 
 /*! Update the resource state with R.
  *
