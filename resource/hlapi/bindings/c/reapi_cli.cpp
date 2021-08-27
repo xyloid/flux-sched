@@ -48,11 +48,17 @@ struct reapi_cli_ctx {
 extern "C" reapi_cli_ctx_t *reapi_cli_new ()
 {
     reapi_cli_ctx_t *ctx = NULL;
-    if (!(ctx = (reapi_cli_ctx_t *)malloc (sizeof (*ctx)))) {
+
+    try {
+        ctx = new reapi_cli_ctx_t;
+    } catch (const std::bad_alloc& e) {
+        std::cout << "Allocation failed: " << e.what() << '\n';
         errno = ENOMEM;
         goto out;
     }
     ctx->h = NULL;
+    ctx->rctx = std::make_shared<resource_context_t> ();
+
 out:
     return ctx;
 }
