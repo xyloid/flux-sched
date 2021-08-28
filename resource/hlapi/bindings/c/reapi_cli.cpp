@@ -65,7 +65,7 @@ out:
 
 extern "C" void reapi_cli_destroy (reapi_cli_ctx_t *ctx)
 {
-    free (ctx);
+    delete ctx;
 }
 
 extern "C" int reapi_cli_initialize (reapi_cli_ctx_t *ctx,
