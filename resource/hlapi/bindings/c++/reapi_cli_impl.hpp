@@ -96,7 +96,7 @@ std::shared_ptr<resource_context_t> reapi_cli_t::initialize (
     ov = 0.0f;
     struct timeval start_time, end_time;
 
-    if ( (rc = gettimeofday (&start_time, NULL)) < 0) {
+    if (gettimeofday (&start_time, NULL) < 0) {
         std::cerr << "ERROR: gettimeofday: " << strerror (errno) <<  "\n";
         goto out;
     }
@@ -188,7 +188,7 @@ std::shared_ptr<resource_context_t> reapi_cli_t::initialize (
         goto out;
     }
 
-    if ( (rc = gettimeofday (&end_time, NULL)) < 0) {
+    if (gettimeofday (&end_time, NULL) < 0) {
         std::cerr << "ERROR: gettimeofday: " << strerror (errno) <<  "\n";
         goto out;
     }
