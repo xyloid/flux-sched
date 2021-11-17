@@ -43,7 +43,7 @@ namespace detail {
 class reapi_cli_t : public reapi_t {
 public:
     static std::shared_ptr<resource_context_t> initialize (
-                                     const std::string &jgf);
+                                     const std::string &jgf, double &ov);
     static int match_allocate (std::shared_ptr<resource_context_t> &rctx, 
                                bool orelse_reserve,
                                const std::string &jobspec,

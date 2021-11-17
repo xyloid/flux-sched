@@ -51,7 +51,7 @@ void reapi_cli_destroy (reapi_cli_ctx_t *ctx);
  * \param ctx           reapi_cli_ctx_t context object
  * \param jgf           jgf string
  */
-int reapi_cli_initialize (reapi_cli_ctx_t *ctx, const char *jgf);
+int reapi_cli_initialize (reapi_cli_ctx_t *ctx, const char *jgf, double *ov);
 
 
 char* reapi_cli_get_node (reapi_cli_ctx_t *ctx);

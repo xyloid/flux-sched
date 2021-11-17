@@ -88,11 +88,18 @@ static int do_remove (std::shared_ptr<resource_context_t> &ctx, uint64_t jobid)
 }
 
 std::shared_ptr<resource_context_t> reapi_cli_t::initialize (
-                                                 const std::string &jgf)
+                                                 const std::string &jgf, double &ov)
 {
     std::shared_ptr<resource_context_t> rctx = nullptr;
     std::stringstream buffer{};
     std::shared_ptr<resource_reader_base_t> rd;
+    ov = 0.0f;
+    struct timeval start_time, end_time;
+
+    if ( (rc = gettimeofday (&start_time, NULL)) < 0) {
+        std::cerr << "ERROR: gettimeofday: " << strerror (errno) <<  "\n";
+        goto out;
+    }
 
     try {
         rctx = std::make_shared<resource_context_t> ();
@@ -180,6 +187,13 @@ std::shared_ptr<resource_context_t> reapi_cli_t::initialize (
         rctx = nullptr;
         goto out;
     }
+
+    if ( (rc = gettimeofday (&end_time, NULL)) < 0) {
+        std::cerr << "ERROR: gettimeofday: " << strerror (errno) <<  "\n";
+        goto out;
+    }
+    
+    ov = get_elapse_time (start_time, end_time);
 
 out:
     return rctx;

@@ -31,10 +31,10 @@ func ReapiCliDestroy(ctx *ReapiCtx) {
 
 /* int reapi_cli_initialize (reapi_cli_ctx_t *ctx, const char *jgf); */
 
-func ReapiCliInit(ctx *ReapiCtx, jgf string) (err int) {
+func ReapiCliInit(ctx *ReapiCtx, jgf string) (overhead float64, err int) {
 	err = (int)(C.reapi_cli_initialize((*C.struct_reapi_cli_ctx)(ctx),
-		C.CString(jgf)))
-	return err
+		C.CString(jgf), (*C.double)(&overhead)))
+	return overhead, err
 }
 
 /*! Match a jobspec to the "best" resources and either allocate

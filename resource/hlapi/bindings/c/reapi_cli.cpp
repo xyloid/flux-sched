@@ -69,10 +69,11 @@ extern "C" void reapi_cli_destroy (reapi_cli_ctx_t *ctx)
 }
 
 extern "C" int reapi_cli_initialize (reapi_cli_ctx_t *ctx,
-                                     const char *jgf)
+                                     const char *jgf,
+                                     double *ov)
 {
     int rc = -1;
-    if ( !(ctx->rctx = reapi_cli_t::initialize (jgf))) {
+    if ( !(ctx->rctx = reapi_cli_t::initialize (jgf, ov))) {
         errno = EINVAL;
         goto out;
     }
