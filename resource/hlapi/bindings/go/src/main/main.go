@@ -19,7 +19,7 @@ func main() {
 		fmt.Println("Error reading JGF file")
 		return
 	}
-	fluxerr := ReapiCliInit(ctx, string(jgf))
+	_, fluxerr = ReapiCliInit(ctx, string(jgf))
 	if err != nil {
 		fmt.Println("Error init ReapiCli")
 		return
