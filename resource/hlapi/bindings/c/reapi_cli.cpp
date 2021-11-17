@@ -73,7 +73,7 @@ extern "C" int reapi_cli_initialize (reapi_cli_ctx_t *ctx,
                                      double *ov)
 {
     int rc = -1;
-    if ( !(ctx->rctx = reapi_cli_t::initialize (jgf, ov))) {
+    if ( !(ctx->rctx = reapi_cli_t::initialize (jgf, *ov))) {
         errno = EINVAL;
         goto out;
     }
